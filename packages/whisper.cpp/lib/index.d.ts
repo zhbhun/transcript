@@ -1,3 +1,19 @@
+export type WhisperModel =
+  | 'tiny'
+  | 'tiny.en'
+  | 'tiny-q5_1'
+  | 'tiny-en-q5_1'
+  | 'base'
+  | 'base.en'
+  | 'base-q5_1'
+  | 'base-en-q5_1'
+  | 'small.en'
+  | 'small-q5_1'
+  | 'small-en-q5_1'
+  | 'medium-q5_0'
+  | 'medium-en-q5_0'
+  | 'large-q5_0'
+
 interface WhisperInstance {
   /**
    * Processes the audio data with the given parameters.
@@ -5,7 +21,15 @@ interface WhisperInstance {
    * @param language The language code for processing.
    * @param nthreads The number of threads to use.
    */
-  process(audio: Float32Array, language: string, nthreads: number): void
+  process(
+    audio: Float32Array,
+    options?: {
+      model?: string
+      language?: string
+      nthreads?: number
+      translate?: boolean
+    }
+  ): Promise<string>
 
   /**
    * Clears the cache, deleting all stored models.
@@ -27,23 +51,19 @@ interface WhisperInstance {
 
   /**
    * Loads a remote model file.
-   * @param url The URL of the remote model.
-   * @param dst The destination filename for the model.
-   * @param size_mb The size of the model in megabytes.
+   * @param name The name of the remote model.
    * @param cbProgress Callback for progress updates (0 to 1).
    * @param cbReady Callback when the model is ready.
    * @param cbCancel Callback when the operation is canceled.
    * @param cbPrint Callback for logging messages.
    */
   loadRemoteModel(
-    url: string,
-    dst: string,
-    size_mb: number,
-    cbProgress: (progress: number) => void,
-    cbReady: (dst: string, data: Uint8Array) => void,
-    cbCancel: () => void,
-    cbPrint: (message: string) => void
-  ): void
+    name: WhisperModel,
+    options?: {
+      url?: string
+      onProgress?: (progress: number) => void
+    }
+  ): Promise<void>
 }
 
 /**

@@ -12,17 +12,58 @@ const OfflineAudioContext =
 const kMaxAudio_s = 30 * 60
 // const kMaxRecording_s = 2 * 60
 const kSampleRate = 16000
+const models = {
+  tiny: 'https://whisper.ggerganov.com/ggml-model-whisper-tiny.bin',
+  'tiny.en': 'https://whisper.ggerganov.com/ggml-model-whisper-tiny.en.bin',
+  'tiny-q5_1': 'https://whisper.ggerganov.com/ggml-model-whisper-tiny-q5_1.bin',
+  'tiny-en-q5_1':
+    'https://whisper.ggerganov.com/ggml-model-whisper-tiny.en-q5_1.bin',
+  base: 'https://whisper.ggerganov.com/ggml-model-whisper-base.bin',
+  'base.en': 'https://whisper.ggerganov.com/ggml-model-whisper-base.en.bin',
+  'base-q5_1': 'https://whisper.ggerganov.com/ggml-model-whisper-base-q5_1.bin',
+  'base-en-q5_1':
+    'https://whisper.ggerganov.com/ggml-model-whisper-base.en-q5_1.bin',
+  small: 'https://whisper.ggerganov.com/ggml-model-whisper-small.bin',
+  'small.en': 'https://whisper.ggerganov.com/ggml-model-whisper-small.en.bin',
+  'small-q5_1':
+    'https://whisper.ggerganov.com/ggml-model-whisper-small-q5_1.bin',
+  'small-en-q5_1':
+    'https://whisper.ggerganov.com/ggml-model-whisper-small.en-q5_1.bin',
+  'medium-q5_0':
+    'https://whisper.ggerganov.com/ggml-model-whisper-medium-q5_0.bin',
+  'medium-en-q5_0':
+    'https://whisper.ggerganov.com/ggml-model-whisper-medium.en-q5_0.bin',
+  'large-q5_0':
+    'https://whisper.ggerganov.com/ggml-model-whisper-large-q5_0.bin',
+}
+const modelSizes = {
+  tiny: 75,
+  'tiny.en': 75,
+  'tiny-q5_1': 31,
+  'tiny-en-q5_1': 31,
+  base: 142,
+  'base-q5_1': 57,
+  'base-en-q5_1': 57,
+  'base.en': 142,
+  small: 466,
+  'small.en': 466,
+  'small-q5_1': 182,
+  'small-en-q5_1': 182,
+  'medium-q5_0': 515,
+  'medium-en-q5_0': 515,
+  'large-q5_0': 1030,
+}
 
 // fetch a remote file from remote URL using the Fetch API
-async function fetchRemote(url, cbProgress, cbPrint) {
-  cbPrint('fetchRemote: downloading with fetch()...')
+async function fetchRemote(url, onProgress) {
+  console.log('fetchRemote: downloading with fetch()...')
 
   const response = await fetch(url, {
     method: 'GET',
   })
 
   if (!response.ok) {
-    cbPrint('fetchRemote: failed to fetch ' + url)
+    console.log('fetchRemote: failed to fetch ' + url)
     return
   }
 
@@ -45,11 +86,11 @@ async function fetchRemote(url, cbProgress, cbPrint) {
     receivedLength += value.length
 
     if (contentLength) {
-      cbProgress(receivedLength / total)
+      onProgress?.(receivedLength / total)
 
       var progressCur = Math.round((receivedLength / total) * 10)
       if (progressCur != progressLast) {
-        cbPrint('fetchRemote: fetching ' + 10 * progressCur + '% ...')
+        console.log('fetchRemote: fetching ' + 10 * progressCur + '% ...')
         progressLast = progressCur
       }
     }
@@ -90,45 +131,59 @@ export default function Whisper() {
     console.log('storeFS: stored model: ' + fname + ' size: ' + buf.length)
   }
 
-  let instance = null
+  let instanceCode = null
+  let instanceModel = null
   let audioContext = null
   return {
-    process(audio, language, nthreads) {
-      if (instance == null) {
-        instance = Module.init('whisper.bin')
-        if (instance) {
-          console.log('js: whisper initialized, instance: ' + instance)
+    process(audio, options) {
+      return new Promise((resolve, reject) => {
+        const model = options.model || 'local'
+        const language = options.language
+        const nthreads = options.nthreads || 8
+        const translate = options.translate || false
+        if (instanceCode == null || instanceModel != model) {
+          if (instanceCode) {
+            Module.free(instanceModel)
+          }
+          instanceCode = Module.init(`${model}.bin`)
+          if (instanceCode) {
+            console.log('js: whisper initialized, instance: ' + instanceCode)
+            instanceModel = model
+          }
         }
-      }
-      if (!instance) {
-        console.error('js: failed to initialize whisper')
-        return
-      }
-      if (!audio) {
-        console.error('js: no audio data')
-        return
-      }
+        if (!instanceCode) {
+          console.error('js: failed to initialize whisper')
+          reject(new Error('js: failed to initialize whisper'))
+          return
+        }
+        if (!audio) {
+          console.error('js: no audio data')
+          reject(new Error('js: no audio data'))
+          return
+        }
 
-      console.log('')
-      console.log('js: processing - this might take a while ...')
-      console.log('')
-      setTimeout(() => {
-        var ret = Module.full_default(instance, audio, language, nthreads)
-        console.log('js: full_default returned: ' + ret)
-        if (ret) {
-          printTextarea('js: whisper returned: ' + ret)
-        }
-      }, 100)
+        console.log('')
+        console.log('js: processing - this might take a while ...')
+        console.log('')
+        setTimeout(() => {
+          const ret = Module.full_default(
+            instanceCode,
+            audio,
+            language,
+            nthreads,
+            translate
+          )
+          console.log('js: full_default returned: ' + ret)
+          if (ret) {
+            console.log('js: whisper returned: ' + ret)
+            reject(new Error('js: whisper returned: ' + ret))
+          }
+        }, 100)
+      })
     },
     async clearCache() {
-      if (
-        confirm(
-          'Are you sure you want to clear the cache?\nAll the models will be downloaded again.'
-        )
-      ) {
-        indexedDB.deleteDatabase(dbName)
-        location.reload()
-      }
+      indexedDB.deleteDatabase(dbName)
+      location.reload()
     },
     loadAudio(file) {
       return new Promise((resolve, reject) => {
@@ -188,7 +243,7 @@ export default function Whisper() {
         reader.readAsArrayBuffer(file)
       })
     },
-    loadLocalModel(file, fname = 'whisper.bin') {
+    loadLocalModel(file, name = 'local') {
       console.log(
         'loadFile: loading model: ' +
           file.name +
@@ -201,140 +256,166 @@ export default function Whisper() {
       var reader = new FileReader()
       reader.onload = function (event) {
         var buf = new Uint8Array(reader.result)
-        storeFS(fname, buf)
+        storeFS(`${name}.bin`, buf)
       }
       reader.readAsArrayBuffer(file)
     },
     // load remote data
     // - check if the data is already in the IndexedDB
     // - if not, fetch it from the remote URL and store it in the IndexedDB
-    loadRemoteModel(url, dst, size_mb, cbProgress, cbReady, cbCancel, cbPrint) {
-      if (!navigator.storage || !navigator.storage.estimate) {
-        cbPrint('loadRemote: navigator.storage.estimate() is not supported')
-      } else {
-        // query the storage quota and print it
-        navigator.storage.estimate().then(function (estimate) {
-          cbPrint('loadRemote: storage quota: ' + estimate.quota + ' bytes')
-          cbPrint('loadRemote: storage usage: ' + estimate.usage + ' bytes')
-        })
-      }
-
-      // check if the data is already in the IndexedDB
-      var rq = indexedDB.open(dbName, dbVersion)
-
-      rq.onupgradeneeded = function (event) {
-        var db = event.target.result
-        if (db.version == 1) {
-          var os = db.createObjectStore('models', { autoIncrement: false })
-          cbPrint(
-            'loadRemote: created IndexedDB ' +
-              db.name +
-              ' version ' +
-              db.version
+    loadRemoteModel(name, options) {
+      return new Promise((resolve, reject) => {
+        const dst = name ? `${name}.bin` : 'local.bin'
+        const url = options?.url || models[name]
+        const size_mb = modelSizes[name] || 0
+        if (!navigator.storage || !navigator.storage.estimate) {
+          console.log(
+            'loadRemoteModel: navigator.storage.estimate() is not supported'
           )
         } else {
-          // clear the database
-          var os = event.currentTarget.transaction.objectStore('models')
-          os.clear()
-          cbPrint(
-            'loadRemote: cleared IndexedDB ' +
-              db.name +
-              ' version ' +
-              db.version
-          )
+          // query the storage quota and print it
+          navigator.storage.estimate().then(function (estimate) {
+            console.log(
+              'loadRemoteModel: storage quota: ' + estimate.quota + ' bytes'
+            )
+            console.log(
+              'loadRemoteModel: storage usage: ' + estimate.usage + ' bytes'
+            )
+          })
         }
-      }
 
-      rq.onsuccess = function (event) {
-        var db = event.target.result
-        var tx = db.transaction(['models'], 'readonly')
-        var os = tx.objectStore('models')
-        var rq = os.get(url)
+        // check if the data is already in the IndexedDB
+        const rq = indexedDB.open(dbName, dbVersion)
+
+        rq.onupgradeneeded = function (event) {
+          const db = event.target.result
+          if (db.version == 1) {
+            db.createObjectStore('models', { autoIncrement: false })
+            console.log(
+              'loadRemoteModel: created IndexedDB ' +
+                db.name +
+                ' version ' +
+                db.version
+            )
+          } else {
+            // clear the database
+            const os = event.currentTarget.transaction.objectStore('models')
+            os.clear()
+            console.log(
+              'loadRemoteModel: cleared IndexedDB ' +
+                db.name +
+                ' version ' +
+                db.version
+            )
+          }
+        }
 
         rq.onsuccess = function (event) {
-          if (rq.result) {
-            cbPrint('loadRemote: "' + url + '" is already in the IndexedDB')
-            cbReady(dst, rq.result)
-          } else {
-            // data is not in the IndexedDB
-            cbPrint('loadRemote: "' + url + '" is not in the IndexedDB')
+          const db = event.target.result
+          const tx = db.transaction(['models'], 'readonly')
+          const os = tx.objectStore('models')
+          const rq = os.get(dst)
 
-            // alert and ask the user to confirm
-            if (
-              !confirm(
-                'You are about to download ' +
-                  size_mb +
-                  ' MB of data.\n' +
-                  'The model data will be cached in the browser for future use.\n\n' +
-                  'Press OK to continue.'
+          rq.onsuccess = function (event) {
+            if (rq.result) {
+              console.log(
+                'loadRemoteModel: "' + dst + '" is already in the IndexedDB'
               )
-            ) {
-              cbCancel()
-              return
-            }
+              storeFS(dst, rq.result)
+              resolve()
+            } else {
+              // data is not in the IndexedDB
+              console.log(
+                'loadRemoteModel: "' + dst + '" is not in the IndexedDB'
+              )
 
-            fetchRemote(url, cbProgress, cbPrint).then(function (data) {
-              if (data) {
-                // store the data in the IndexedDB
-                var rq = indexedDB.open(dbName, dbVersion)
-                rq.onsuccess = function (event) {
-                  var db = event.target.result
-                  var tx = db.transaction(['models'], 'readwrite')
-                  var os = tx.objectStore('models')
-
-                  var rq = null
-                  try {
-                    var rq = os.put(data, url)
-                  } catch (e) {
-                    cbPrint(
-                      'loadRemote: failed to store "' +
-                        url +
-                        '" in the IndexedDB: \n' +
-                        e
-                    )
-                    cbCancel()
-                    return
-                  }
-
+              fetchRemote(url, options?.onProgress).then(function (data) {
+                if (data) {
+                  // store the data in the IndexedDB
+                  const rq = indexedDB.open(dbName, dbVersion)
                   rq.onsuccess = function (event) {
-                    cbPrint('loadRemote: "' + url + '" stored in the IndexedDB')
-                    cbReady(dst, data)
-                  }
+                    var db = event.target.result
+                    var tx = db.transaction(['models'], 'readwrite')
+                    var os = tx.objectStore('models')
 
-                  rq.onerror = function (event) {
-                    cbPrint(
-                      'loadRemote: failed to store "' +
-                        url +
-                        '" in the IndexedDB'
-                    )
-                    cbCancel()
+                    var rq = null
+                    try {
+                      var rq = os.put(data, dst)
+                    } catch (e) {
+                      console.log(
+                        'loadRemoteModel: failed to store "' +
+                          dst +
+                          '" in the IndexedDB: \n' +
+                          e
+                      )
+                      reject(
+                        new Error(
+                          'loadRemoteModel: failed to store "' +
+                            dst +
+                            '" in the IndexedDB: \n' +
+                            e
+                        )
+                      )
+                      return
+                    }
+
+                    rq.onsuccess = function (event) {
+                      console.log(
+                        'loadRemoteModel: "' + dst + '" stored in the IndexedDB'
+                      )
+                      storeFS(dst, data)
+                      resolve()
+                    }
+
+                    rq.onerror = function (event) {
+                      console.log(
+                        'loadRemoteModel: failed to store "' +
+                          dst +
+                          '" in the IndexedDB'
+                      )
+                      reject(
+                        new Error(
+                          'loadRemoteModel: failed to store "' +
+                            dst +
+                            '" in the IndexedDB'
+                        )
+                      )
+                    }
                   }
                 }
-              }
-            })
+              })
+            }
+          }
+
+          rq.onerror = function (event) {
+            console.error(
+              'loadRemoteModel: failed to get data from the IndexedDB'
+            )
+            reject(
+              new Error(
+                'loadRemoteModel: failed to get data from the IndexedDB'
+              )
+            )
           }
         }
 
         rq.onerror = function (event) {
-          cbPrint('loadRemote: failed to get data from the IndexedDB')
-          cbCancel()
+          console.error('loadRemoteModel: failed to open IndexedDB')
+          reject(new Error('loadRemoteModel: failed to open IndexedDB'))
         }
-      }
 
-      rq.onerror = function (event) {
-        cbPrint('loadRemote: failed to open IndexedDB')
-        cbCancel()
-      }
+        rq.onblocked = function (event) {
+          console.error('loadRemoteModel: failed to open IndexedDB: blocked')
+          reject(
+            new Error('loadRemoteModel: failed to open IndexedDB: blocked')
+          )
+        }
 
-      rq.onblocked = function (event) {
-        cbPrint('loadRemote: failed to open IndexedDB: blocked')
-        cbCancel()
-      }
-
-      rq.onabort = function (event) {
-        cbPrint('loadRemote: failed to open IndexedDB: abort')
-        cbCancel()
-      }
+        rq.onabort = function (event) {
+          console.error('loadRemoteModel: failed to open IndexedDB: abort')
+          reject('loadRemoteModel: failed to open IndexedDB: abort')
+        }
+      })
     },
   }
 }

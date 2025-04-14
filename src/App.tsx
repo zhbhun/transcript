@@ -5,6 +5,7 @@ import './App.css'
 const whisper = Whisper()
 
 function App() {
+  const [model, setModel] = useState<string>('')
   const [audio, setAudio] = useState<Float32Array | null>(null)
   const [language, setLanguage] = useState<string>('zh')
 
@@ -23,6 +24,42 @@ function App() {
               }
             }}
           />
+          <button
+            onClick={(event) => {
+              event.preventDefault()
+              setModel('base-q5_1')
+              whisper
+                .loadRemoteModel('base-q5_1', {
+                  url: '/ggml-base-q5_1.bin',
+                  onProgress: (progress) => {
+                    console.log('Progress:', progress)
+                  },
+                })
+                .then(() => {
+                  console.log('Model loaded')
+                })
+            }}
+          >
+            load base
+          </button>
+          <button
+            onClick={(event) => {
+              event.preventDefault()
+              setModel('small-q5_1')
+              whisper
+                .loadRemoteModel('small-q5_1', {
+                  url: '/ggml-small-q5_1.bin',
+                  onProgress: (progress) => {
+                    console.log('Progress:', progress)
+                  },
+                })
+                .then(() => {
+                  console.log('Model loaded')
+                })
+            }}
+          >
+            load small
+          </button>
         </div>
         <div>
           <label htmlFor="audio">Audio:</label>
@@ -44,7 +81,7 @@ function App() {
           <input
             type="text"
             name="language"
-            value="zh"
+            value={language}
             onChange={(event) => {
               setLanguage(event.target.value)
             }}
@@ -55,7 +92,11 @@ function App() {
             onClick={(event) => {
               event.preventDefault()
               if (audio) {
-                whisper.process(audio, language, 8)
+                whisper.process(audio, {
+                  model,
+                  language,
+                  nthreads: 8,
+                })
               }
             }}
           >
