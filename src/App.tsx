@@ -92,11 +92,15 @@ function App() {
             onClick={(event) => {
               event.preventDefault()
               if (audio) {
-                whisper.process(audio, {
-                  model,
-                  language,
-                  nthreads: 8,
-                })
+                whisper
+                  .process(audio, {
+                    model,
+                    language,
+                    nthreads: 8,
+                  })
+                  .then((result) => {
+                    console.log(result)
+                  })
               }
             }}
           >

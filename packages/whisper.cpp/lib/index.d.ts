@@ -14,6 +14,12 @@ export type WhisperModel =
   | 'medium-en-q5_0'
   | 'large-q5_0'
 
+export interface WhisperSegement {
+  start: number
+  end: number
+  text: string
+}
+
 interface WhisperInstance {
   /**
    * Processes the audio data with the given parameters.
@@ -29,7 +35,7 @@ interface WhisperInstance {
       nthreads?: number
       translate?: boolean
     }
-  ): Promise<string>
+  ): Promise<WhisperSegement[]>
 
   /**
    * Clears the cache, deleting all stored models.

@@ -107,10 +107,42 @@ async function fetchRemote(url, onProgress) {
   return chunksAll
 }
 
+function parseTimeToSeconds(timeStr) {
+  const match = timeStr.match(/(\d+):(\d+):(\d+)\.(\d+)/)
+  if (!match) throw new Error('Invalid time format: ' + timeStr)
+
+  const [, hh, mm, ss, ms] = match.map(Number)
+  return hh * 3600 + mm * 60 + ss + ms / 1000
+}
+
+function parseSegment(line) {
+  const regex =
+    /^\[(\d{2}:\d{2}:\d{2}\.\d{3}) --> (\d{2}:\d{2}:\d{2}\.\d{3})\]\s*(.+)$/
+  const match = line.match(regex)
+  if (!match) return null
+
+  const [, startStr, endStr, text] = match
+  return {
+    start: parseTimeToSeconds(startStr),
+    end: parseTimeToSeconds(endStr),
+    text: text.trim(),
+  }
+}
+
 export default function Whisper() {
+  const segments = []
+  let onProcessed = null
   const Module = Object.assign(window.Module, {
-    print: console.log,
-    printErr: console.log,
+    log: (...args) => {
+      const message = args[0]
+      if (message && /^\[\d\d:\d\d.+/.test(message)) {
+        const segment = parseSegment(message)
+        segments.push(segment)
+      } else if (segments.length > 0) {
+        onProcessed?.(segments)
+      }
+      console.log(...args)
+    },
     setStatus: function (text) {
       console.log('js: ' + text)
     },
@@ -136,6 +168,7 @@ export default function Whisper() {
   let audioContext = null
   return {
     process(audio, options) {
+      onProcessed = null
       return new Promise((resolve, reject) => {
         const model = options.model || 'local'
         const language = options.language
@@ -177,6 +210,10 @@ export default function Whisper() {
           if (ret) {
             console.log('js: whisper returned: ' + ret)
             reject(new Error('js: whisper returned: ' + ret))
+          } else {
+            onProcessed = (segments) => {
+              resolve(segments)
+            }
           }
         }, 100)
       })
