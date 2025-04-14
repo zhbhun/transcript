@@ -1,0 +1,6 @@
+{
+  "name": "whisper.cpp",
+  "version": "1.0.0",
+  "description": "Whisper.cpp is a C++ implementation of OpenAI's Whisper speech recognition model.",
+  "main": "lib/index.js"
+}

@@ -1,33 +1,68 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
+import Whisper from 'whisper.cpp'
 import './App.css'
 
+const whisper = Whisper()
+
 function App() {
-  const [count, setCount] = useState(0)
+  const [audio, setAudio] = useState<Float32Array | null>(null)
+  const [language, setLanguage] = useState<string>('zh')
 
   return (
     <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
+      <form>
+        <div>
+          <label htmlFor="model">Model:</label>
+          <input
+            type="file"
+            name="model"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) {
+                whisper.loadLocalModel(file)
+              }
+            }}
+          />
+        </div>
+        <div>
+          <label htmlFor="audio">Audio:</label>
+          <input
+            type="file"
+            name="audio"
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) {
+                whisper.loadAudio(file).then((audio) => {
+                  setAudio(audio)
+                })
+              }
+            }}
+          />
+        </div>
+        <div>
+          <label htmlFor="language">Language:</label>
+          <input
+            type="text"
+            name="language"
+            value="zh"
+            onChange={(event) => {
+              setLanguage(event.target.value)
+            }}
+          />
+        </div>
+        <div>
+          <button
+            onClick={(event) => {
+              event.preventDefault()
+              if (audio) {
+                whisper.process(audio, language, 8)
+              }
+            }}
+          >
+            Submit
+          </button>
+        </div>
+      </form>
     </>
   )
 }
