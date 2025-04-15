@@ -1,113 +1,92 @@
-import { useState } from 'react'
 import Whisper from 'whisper.cpp'
+import {
+  Button,
+  Card,
+  CardBody,
+  Link,
+  Navbar,
+  NavbarBrand,
+  NavbarContent,
+  NavbarItem,
+} from '@heroui/react'
 import './App.css'
+import reactLogo from './assets/react.svg'
+import { transcribe } from './services/TranscriptService'
 
 const whisper = Whisper()
 
 function App() {
-  const [model, setModel] = useState<string>('')
-  const [audio, setAudio] = useState<Float32Array | null>(null)
-  const [language, setLanguage] = useState<string>('zh')
-
   return (
     <>
-      <form>
-        <div>
-          <label htmlFor="model">Model:</label>
-          <input
-            type="file"
-            name="model"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (file) {
-                whisper.loadLocalModel(file)
-              }
-            }}
-          />
-          <button
-            onClick={(event) => {
-              event.preventDefault()
-              setModel('base-q5_1')
-              whisper
-                .loadRemoteModel('base-q5_1', {
-                  url: '/ggml-base-q5_1.bin',
-                  onProgress: (progress) => {
-                    console.log('Progress:', progress)
-                  },
-                })
-                .then(() => {
-                  console.log('Model loaded')
-                })
-            }}
-          >
-            load base
-          </button>
-          <button
-            onClick={(event) => {
-              event.preventDefault()
-              setModel('small-q5_1')
-              whisper
-                .loadRemoteModel('small-q5_1', {
-                  url: '/ggml-small-q5_1.bin',
-                  onProgress: (progress) => {
-                    console.log('Progress:', progress)
-                  },
-                })
-                .then(() => {
-                  console.log('Model loaded')
-                })
-            }}
-          >
-            load small
-          </button>
-        </div>
-        <div>
-          <label htmlFor="audio">Audio:</label>
-          <input
-            type="file"
-            name="audio"
-            onChange={(event) => {
-              const file = event.target.files?.[0]
-              if (file) {
-                whisper.loadAudio(file).then((audio) => {
-                  setAudio(audio)
-                })
-              }
-            }}
-          />
-        </div>
-        <div>
-          <label htmlFor="language">Language:</label>
-          <input
-            type="text"
-            name="language"
-            value={language}
-            onChange={(event) => {
-              setLanguage(event.target.value)
-            }}
-          />
-        </div>
-        <div>
-          <button
-            onClick={(event) => {
-              event.preventDefault()
-              if (audio) {
-                whisper
-                  .process(audio, {
-                    model,
-                    language,
-                    nthreads: 8,
-                  })
-                  .then((result) => {
-                    console.log(result)
-                  })
-              }
-            }}
-          >
-            Submit
-          </button>
-        </div>
-      </form>
+      <Navbar>
+        <NavbarBrand>
+          <img src={reactLogo} className="logo" alt="Vite logo" />
+          <p className="font-bold text-inherit">Transcript</p>
+        </NavbarBrand>
+        <NavbarContent className="flex gap-4" justify="start">
+          <NavbarItem>
+            <Link color="foreground" href="#">
+              Home
+            </Link>
+          </NavbarItem>
+          <NavbarItem>
+            <Link color="foreground" href="#">
+              Meeting
+            </Link>
+          </NavbarItem>
+          <NavbarItem>
+            <Link color="foreground" href="#">
+              Interview
+            </Link>
+          </NavbarItem>
+        </NavbarContent>
+        <NavbarContent justify="end">
+          <NavbarItem>
+            <Button as={Link} color="primary" href="#" variant="flat">
+              Settings
+            </Button>
+          </NavbarItem>
+        </NavbarContent>
+      </Navbar>
+      <div className="md:container">
+        <h1>Audio to Text Converter</h1>
+        <p>Upload an audio file and convert it to text in seconds.</p>
+        <Card shadow="none" fullWidth>
+          <CardBody>
+            <Button className="relative" size="lg">
+              Upload Your File
+              <input
+                className="absolute inset-0 opacity-0 cursor-pointer"
+                type="file"
+                onChange={async (event) => {
+                  try {
+                    const file = event.target.files?.[0]
+                    if (file) {
+                      await transcribe(file)
+                      // const audio = await whisper.loadAudio(file)
+                      // await whisper.loadRemoteModel('small-q5_1', {
+                      //   url: '/ggml-small-q5_1.bin',
+                      //   onProgress: (progress) => {
+                      //     console.log('Progress:', progress)
+                      //   },
+                      // })
+                      // const result = await whisper.process(audio, {
+                      //   model: 'small-q5_1',
+                      //   language: 'auto',
+                      //   nthreads: 8,
+                      // })
+                      // console.log(result)
+                    }
+                  } catch (error) {
+                    console.log(error)
+                  }
+                }}
+              />
+            </Button>
+            <p>supports media files of any duration.</p>
+          </CardBody>
+        </Card>
+      </div>
     </>
   )
 }
