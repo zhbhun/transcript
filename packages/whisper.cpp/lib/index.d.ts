@@ -43,16 +43,29 @@ interface WhisperInstance {
   clearCache(): Promise<void>
 
   /**
-   * Loads an audio file from an input event.
+   * Decode an audio file.
    * @param file The audio file.
    */
-  loadAudio(file: File): Promise<Float32Array>
+  decodeAudio(file: File): Promise<AudioBuffer>
+
+  /**
+   * Loads an audio file.
+   * @param file The audio file.
+   */
+  loadAudio(file: File): Promise<{
+    data: Float32Array
+    length: number
+    duration: number
+    sampleRate: number
+    numberOfChannels: number
+  }>
 
   /**
    * Loads a local model file.
    * @param file The file object containing the model.
    * @param fname The name to store the model as.
    */
+
   loadLocalModel(file: File, fname?: string): void
 
   /**

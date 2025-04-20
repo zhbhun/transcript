@@ -1,4 +1,4 @@
-const dbName = 'whisper.ggerganov.com'
+const dbName = 'whisper.cpp'
 const dbVersion = 1
 const indexedDB =
   window.indexedDB ||
@@ -166,6 +166,43 @@ export default function Whisper() {
   let instanceCode = null
   let instanceModel = null
   let audioContext = null
+
+  function decodeAudio(file) {
+    return new Promise((resolve, reject) => {
+      if (!audioContext) {
+        audioContext = new AudioContext({
+          sampleRate: kSampleRate,
+          channelCount: 1,
+          echoCancellation: false,
+          autoGainControl: true,
+          noiseSuppression: true,
+        })
+      }
+
+      console.log(
+        'js: loading audio: ' + file.name + ', size: ' + file.size + ' bytes'
+      )
+      console.log('js: please wait ...')
+
+      var reader = new FileReader()
+      reader.onload = function (event) {
+        var buf = new Uint8Array(reader.result)
+
+        audioContext.decodeAudioData(
+          buf.buffer,
+          function (audioBuffer) {
+            resolve(audioBuffer)
+          },
+          function (e) {
+            console.log('js: error decoding audio: ' + e)
+            reject(new Error('Error decoding audio: ' + e))
+          }
+        )
+      }
+      reader.readAsArrayBuffer(file)
+    })
+  }
+
   return {
     process(audio, options) {
       onProcessed = null
@@ -222,62 +259,44 @@ export default function Whisper() {
       indexedDB.deleteDatabase(dbName)
       location.reload()
     },
+    decodeAudio,
     loadAudio(file) {
-      return new Promise((resolve, reject) => {
-        if (!audioContext) {
-          audioContext = new AudioContext({
-            sampleRate: kSampleRate,
-            channelCount: 1,
-            echoCancellation: false,
-            autoGainControl: true,
-            noiseSuppression: true,
-          })
-        }
-
-        console.log(
-          'js: loading audio: ' + file.name + ', size: ' + file.size + ' bytes'
+      return decodeAudio(file).then((audioBuffer) => {
+        var offlineContext = new OfflineAudioContext(
+          audioBuffer.numberOfChannels,
+          audioBuffer.length,
+          audioBuffer.sampleRate
         )
-        console.log('js: please wait ...')
+        var source = offlineContext.createBufferSource()
+        source.buffer = audioBuffer
+        source.connect(offlineContext.destination)
+        source.start(0)
 
-        var reader = new FileReader()
-        reader.onload = function (event) {
-          var buf = new Uint8Array(reader.result)
+        return new Promise((resolve, reject) => {
+          offlineContext
+            .startRendering()
+            .then(function (renderedBuffer) {
+              let audio = renderedBuffer.getChannelData(0)
+              console.log('js: audio loaded, size: ' + audio.length)
 
-          audioContext.decodeAudioData(
-            buf.buffer,
-            function (audioBuffer) {
-              var offlineContext = new OfflineAudioContext(
-                audioBuffer.numberOfChannels,
-                audioBuffer.length,
-                audioBuffer.sampleRate
-              )
-              var source = offlineContext.createBufferSource()
-              source.buffer = audioBuffer
-              source.connect(offlineContext.destination)
-              source.start(0)
+              // truncate to first 30 seconds
+              if (audio.length > kMaxAudio_s * kSampleRate) {
+                audio = audio.slice(0, kMaxAudio_s * kSampleRate)
+                console.log(
+                  'js: truncated audio to first ' + kMaxAudio_s + ' seconds'
+                )
+              }
 
-              offlineContext.startRendering().then(function (renderedBuffer) {
-                let audio = renderedBuffer.getChannelData(0)
-                console.log('js: audio loaded, size: ' + audio.length)
-
-                // truncate to first 30 seconds
-                if (audio.length > kMaxAudio_s * kSampleRate) {
-                  audio = audio.slice(0, kMaxAudio_s * kSampleRate)
-                  console.log(
-                    'js: truncated audio to first ' + kMaxAudio_s + ' seconds'
-                  )
-                }
-
-                resolve(audio)
+              resolve({
+                data: audio,
+                length: audioBuffer.length,
+                duration: audioBuffer.duration,
+                sampleRate: audioBuffer.sampleRate,
+                numberOfChannels: audioBuffer.numberOfChannels,
               })
-            },
-            function (e) {
-              console.log('js: error decoding audio: ' + e)
-              reject(new Error('Error decoding audio: ' + e))
-            }
-          )
-        }
-        reader.readAsArrayBuffer(file)
+            })
+            .catch(reject)
+        })
       })
     },
     loadLocalModel(file, name = 'local') {
@@ -366,7 +385,7 @@ export default function Whisper() {
                 'loadRemoteModel: "' + dst + '" is not in the IndexedDB'
               )
 
-              fetchRemote(url, options?.onProgress).then(function (data) {
+              fetchRemote(url, q).then(function (data) {
                 if (data) {
                   // store the data in the IndexedDB
                   const rq = indexedDB.open(dbName, dbVersion)
