@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { Card, CardBody, CardHeader, Divider } from '@heroui/react'
+import ArrowUpTrayIcon  from '@heroicons/react/24/outline/ArrowUpTrayIcon'
 import { useShallow } from 'zustand/shallow'
 import BackgroundPaths from '@/components/BackgroundPaths'
 import TranscriptList from '@/components/TranscriptList'
 import { useTranscriptStore } from '@/stores'
-import assets_upload from '@/assets/upload.svg'
 
 export default function Home() {
   const [records, initiate, transcribe] = useTranscriptStore(
@@ -30,11 +30,7 @@ export default function Home() {
         >
           <CardBody className="flex flex-col items-center justify-center h-full text-center space-y-4">
             <div className="relative">
-              <img
-                className="block mx-auto w-12 h-12"
-                src={assets_upload}
-                alt="Upload Icon"
-              />
+              <ArrowUpTrayIcon className="w-12 h-12" />
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             </div>
             <div className="text-lg font-semibold text-gray-800 dark:text-gray-200">
