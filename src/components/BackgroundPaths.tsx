@@ -65,7 +65,7 @@ export default function BackgroundPaths({
   return (
     <section
       className={clsx(
-        'relative flex flex-col justify-start min-h-[680px] h-screen w-full overflow-hidden bg-gradient-to-b from-white to-neutral-100 dark:from-neutral-900 dark:to-neutral-950',
+        'relative flex flex-col justify-start min-h-[680px] h-screen w-full overflow-hidden bg-gradient-to-b from-white to-neutral-50 dark:from-neutral-900 dark:to-neutral-950',
         className
       )}
     >

@@ -1,4 +1,4 @@
-import { Outlet } from 'react-router-dom'
+import { Outlet, useNavigate } from 'react-router-dom'
 import {
   Button,
   Link,
@@ -11,10 +11,16 @@ import CogIcon from '@heroicons/react/24/outline/CogIcon'
 import assets_logo from '@/assets/logo.svg'
 
 export default function Layout() {
+  const navigate = useNavigate()
   return (
-    <div className="bg-neutral-100 dark:bg-neutral-950">
+    <div className="bg-neutral-50 dark:bg-neutral-950">
       <Navbar isBordered maxWidth="full">
-        <NavbarBrand>
+        <NavbarBrand
+          className="cursor-pointer"
+          onClick={() => {
+            navigate('/')
+          }}
+        >
           <img
             src={assets_logo}
             className="w-8 h-8 transition-transform hover:rotate-180"

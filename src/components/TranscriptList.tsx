@@ -84,12 +84,12 @@ function getStatusRingColor(status: TranscriptRecord['status']): string {
 
 interface TranscriptListProps {
   records: (TranscriptRecord & { progress: number })[]
-  onViewDetails?: (record: TranscriptRecord) => void
+  onClick?: (record: TranscriptRecord) => void
 }
 
 export default function TranscriptList({
   records,
-  onViewDetails,
+  onClick,
 }: TranscriptListProps) {
   return (
     <ul role="list" className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -100,7 +100,7 @@ export default function TranscriptList({
           <li
             key={record.id}
             className="relative flex items-center gap-x-6 py-5 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 sm:px-6 cursor-pointer"
-            onClick={() => onViewDetails?.(record)}
+            onClick={() => onClick?.(record)}
           >
             {/* Column 1: File Extension with Status Ring */}
             <div className="relative flex-none">
@@ -128,7 +128,7 @@ export default function TranscriptList({
               </div>
               {record.status === 1 && (
                 <CircularProgress
-                  className='absolute top-0 left-0 scale-[1.2]'
+                  className="absolute top-0 left-0 scale-[1.2]"
                   aria-label="Loading..."
                   color="primary"
                   size="lg"

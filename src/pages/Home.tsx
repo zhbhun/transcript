@@ -1,12 +1,14 @@
 import { useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardBody, CardHeader, Divider } from '@heroui/react'
-import ArrowUpTrayIcon  from '@heroicons/react/24/outline/ArrowUpTrayIcon'
+import ArrowUpTrayIcon from '@heroicons/react/24/outline/ArrowUpTrayIcon'
 import { useShallow } from 'zustand/shallow'
 import BackgroundPaths from '@/components/BackgroundPaths'
 import TranscriptList from '@/components/TranscriptList'
 import { useTranscriptStore } from '@/stores'
 
 export default function Home() {
+  const navigate = useNavigate()
   const [records, initiate, transcribe] = useTranscriptStore(
     useShallow((state) => [state.records, state.initiate, state.transcribe])
   )
@@ -72,7 +74,12 @@ export default function Home() {
             </CardHeader>
             <Divider />
             <CardBody className="p-0">
-              <TranscriptList records={records} onViewDetails={() => {}} />
+              <TranscriptList
+                records={records}
+                onClick={(record) => {
+                  navigate(`/transcript/${record.id}`)
+                }}
+              />
             </CardBody>
           </Card>
         </div>
