@@ -1,9 +1,8 @@
-import { CircularProgress } from '@heroui/progress'
+import { Card, CardBody, CircularProgress } from '@heroui/react'
 import { formatDistanceToNow } from 'date-fns'
 import { zhCN } from 'date-fns/locale'
 import { ChevronRightIcon } from '@heroicons/react/24/outline'
 import { TranscriptRecord } from '../types'
-import { progress } from 'framer-motion'
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + ' B'
@@ -92,20 +91,27 @@ export default function TranscriptList({
   onClick,
 }: TranscriptListProps) {
   return (
-    <ul role="list" className="divide-y divide-gray-100 dark:divide-gray-800">
+    <div role="list" className="divide-y divide-gray-100 dark:divide-gray-800">
       {records.map((record) => {
         const extension = record.format
         const extensionStyle = getExtensionStyle(extension)
         return (
-          <li
+          <Card
             key={record.id}
-            className="relative flex items-center gap-x-6 py-5 px-4 hover:bg-gray-50 dark:hover:bg-gray-800/50 sm:px-6 cursor-pointer"
-            onClick={() => onClick?.(record)}
+            className="relative cursor-pointer"
+            disableRipple
+            fullWidth
+            shadow="none"
+            radius="none"
+            isHoverable
+            isPressable
+            onPress={() => onClick?.(record)}
           >
-            {/* Column 1: File Extension with Status Ring */}
-            <div className="relative flex-none">
-              <div
-                className={`
+            <CardBody className="flex flex-row items-center gap-x-6 py-5 px-4 sm:px-6">
+              {/* Column 1: File Extension with Status Ring */}
+              <div className="relative flex-none">
+                <div
+                  className={`
                 w-12 h-12 
                 rounded-full
                 flex items-center justify-center 
@@ -113,61 +119,62 @@ export default function TranscriptList({
                 ${getStatusRingColor(record.status)}
                 ${record.status === 1 ? 'ring-0' : 'ring-4'}
               `}
-              >
-                <span
-                  className={`
+                >
+                  <span
+                    className={`
                   font-mono font-medium uppercase
                   ${extensionStyle.text}
                   ${extension.length >= 4 ? 'text-[13px]' : 'text-[15px]'}
                   tracking-tight
                   transform -translate-y-[1px]
                 `}
-                >
-                  {extension}
-                </span>
+                  >
+                    {extension}
+                  </span>
+                </div>
+                {record.status === 1 && (
+                  <CircularProgress
+                    className="absolute top-0 left-0 scale-[1.2]"
+                    aria-label="Loading..."
+                    color="primary"
+                    size="lg"
+                    value={record.progress * 100}
+                  />
+                )}
               </div>
-              {record.status === 1 && (
-                <CircularProgress
-                  className="absolute top-0 left-0 scale-[1.2]"
-                  aria-label="Loading..."
-                  color="primary"
-                  size="lg"
-                  value={record.progress * 100}
-                />
-              )}
-            </div>
 
-            {/* Column 2: File Information */}
-            <div className="flex-auto min-w-0">
-              <p className="text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 truncate">
-                {record.name}
-              </p>
-              <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
-                <p>{formatFileSize(record.size)}</p>
-                <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
-                  <circle cx={1} cy={1} r={1} />
-                </svg>
-                <p>{formatDuration(record.duration)}</p>
-                <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
-                  <circle cx={1} cy={1} r={1} />
-                </svg>
-                <p>
-                  {formatDistanceToNow(record.createdAt, {
-                    addSuffix: true,
-                    locale: zhCN,
-                  })}
+              {/* Column 2: File Information */}
+              <div className="flex-auto min-w-0">
+                <p className="text-sm font-semibold leading-6 text-gray-900 dark:text-gray-100 truncate">
+                  {record.name}
                 </p>
+                <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs leading-5 text-gray-500 dark:text-gray-400">
+                  <p>{formatFileSize(record.size)}</p>
+                  <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                    <circle cx={1} cy={1} r={1} />
+                  </svg>
+                  <p>{formatDuration(record.duration)}</p>
+                  <svg viewBox="0 0 2 2" className="h-0.5 w-0.5 fill-current">
+                    <circle cx={1} cy={1} r={1} />
+                  </svg>
+                  <p>
+                    {formatDistanceToNow(record.createdAt, {
+                      addSuffix: true,
+                      locale: zhCN,
+                    })}
+                  </p>
+                </div>
               </div>
-            </div>
 
-            {/* Column 3: Action Icon */}
-            <ChevronRightIcon
-              className="h-5 w-5 flex-none text-gray-400"
-              aria-hidden="true"
-            />
-          </li>
+              {/* Column 3: Action Icon */}
+              <ChevronRightIcon
+                className="h-5 w-5 flex-none text-gray-400"
+                aria-hidden="true"
+              />
+            </CardBody>
+          </Card>
         )
       })}
-    </ul>
+    </div>
   )
 }

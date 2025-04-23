@@ -23,7 +23,7 @@ export default function Home() {
         subtitle="Upload an audio file and convert it to text"
       >
         <Card
-          className="relative mt-[10vh] w-full min-h-[32vh] border-2 border-dashed p-8 sm:w-5/6 md:w-4/6 lg:w-3/6 xl:w-2/6 group hover:border-primary transition-colors duration-300 dark:hover:border-primary-500"
+          className="relative mt-[10vh] w-full min-h-[32vh] border-2 border-dashed p-8 sm:w-5/6 md:w-4/6 xl:w-3/6 group hover:border-primary transition-colors duration-300 dark:hover:border-primary-500"
           disableRipple
           fullWidth
           isHoverable
