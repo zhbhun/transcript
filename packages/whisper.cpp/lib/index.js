@@ -139,7 +139,9 @@ export default function Whisper() {
         const segment = parseSegment(message)
         segments.push(segment)
       } else if (segments.length > 0) {
-        onProcessed?.(segments)
+        const result = segments.slice(0)
+        segments.splice(0, segments.length)
+        onProcessed?.(result)
       }
       console.log(...args)
     },
@@ -249,7 +251,9 @@ export default function Whisper() {
             reject(new Error('js: whisper returned: ' + ret))
           } else {
             onProcessed = (segments) => {
-              resolve(segments)
+              setTimeout(() => {
+                resolve(segments)
+              }, 100)
             }
           }
         }, 100)
