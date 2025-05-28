@@ -64,7 +64,7 @@ export default function Home() {
           </Card>
         </div>
       </BackgroundPaths>
-      <div className="relative z-0 -mt-[10vh]">
+      <div className="relative z-0 -mt-[10vh] mb-48">
         {records.length > 0 ? (
           <div className="container mx-auto mb-48">
             <Card shadow="none" fullWidth>
@@ -76,7 +76,7 @@ export default function Home() {
                 </h2>
               </CardHeader>
               <Divider />
-              <CardBody className="p-0">
+              <CardBody className="min-h-[40vh] p-0">
                 <TranscriptList
                   records={records}
                   onClick={(record) => {
@@ -251,6 +251,12 @@ export default function Home() {
           </div>
         </div>
       </div>
+      {/* Footer */}
+      <footer className="w-full py-8 dark:bg-neutral-950 border-t border-gray-100 dark:border-neutral-800 mt-0">
+        <div className="container mx-auto px-4 text-center text-gray-500 dark:text-gray-400 text-sm">
+          © 2024 Transcript · 免费开源 · 本地隐私安全
+        </div>
+      </footer>
     </>
   )
 }
