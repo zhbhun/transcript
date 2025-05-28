@@ -389,7 +389,7 @@ export default function Whisper() {
                 'loadRemoteModel: "' + dst + '" is not in the IndexedDB'
               )
 
-              fetchRemote(url, q).then(function (data) {
+              fetchRemote(url, options?.onProgress).then(function (data) {
                 if (data) {
                   // store the data in the IndexedDB
                   const rq = indexedDB.open(dbName, dbVersion)
